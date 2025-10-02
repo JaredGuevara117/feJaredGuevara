@@ -96,7 +96,11 @@ function App() {
         </a>
       </div>
       
-      <h1>PWA Demo - Funcionalidad Offline</h1>
+      <h1>🚀 Mi PWA App</h1>
+      <p className="app-description">
+        Una aplicación web progresiva con splash screen, iconos de diferentes resoluciones 
+        y funcionalidad offline completa.
+      </p>
       
       {/* Indicador de estado de conexión */}
       <div className="connection-status">
@@ -168,15 +172,34 @@ function App() {
       </div>
 
       <div className="pwa-info">
-        <h3>Características PWA implementadas:</h3>
+        <h3>🎨 Características PWA implementadas:</h3>
         <ul>
-          <li>✅ Cache de APP SHELL (rutas fijas)</li>
-          <li>✅ Cache dinámico (contenido nuevo)</li>
-          <li>✅ Eliminación automática de cache vieja</li>
-          <li>✅ Activación automática del Service Worker</li>
-          <li>✅ Funcionalidad offline completa</li>
-          <li>✅ Sincronización en segundo plano</li>
+          <li>✅ <strong>Splash Screen:</strong> Pantalla de carga con color de fondo azul (#2196F3)</li>
+          <li>✅ <strong>Iconos múltiples:</strong> 72x72, 96x96, 128x128, 144x144, 152x152, 192x192, 384x384, 512x512</li>
+          <li>✅ <strong>Manifest completo:</strong> Configuración para instalación en dispositivos móviles</li>
+          <li>✅ <strong>Cache de APP SHELL:</strong> Rutas fijas en cache</li>
+          <li>✅ <strong>Cache dinámico:</strong> Contenido nuevo se cachea automáticamente</li>
+          <li>✅ <strong>Funcionalidad offline:</strong> Funciona sin conexión a internet</li>
+          <li>✅ <strong>Service Worker:</strong> Activación automática para funcionalidad offline</li>
         </ul>
+        
+        <div className="install-instructions">
+          <h4>📱 Para instalar esta PWA:</h4>
+          <ol>
+            <li>Busca el botón "📱 Instalar PWA" en la esquina superior derecha</li>
+            <li>O usa el menú del navegador: "Agregar a pantalla de inicio"</li>
+            <li>¡Disfruta de tu PWA con splash screen!</li>
+          </ol>
+          
+          <div className="pwa-status">
+            <h4>🔍 Características PWA:</h4>
+            <p>✅ Manifest.json configurado</p>
+            <p>✅ Service Worker activo</p>
+            <p>✅ Iconos optimizados</p>
+            <p>✅ Splash screen configurado</p>
+            <p>✅ Funcionalidad offline</p>
+          </div>
+        </div>
       </div>
     </>
   )

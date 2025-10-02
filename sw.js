@@ -7,13 +7,10 @@ const DYNAMIC_CACHE = `dynamic_${CACHE_VERSION}`;
 const APP_SHELL_ROUTES = [
   '/',
   '/index.html',
-  '/src/main.jsx',
-  '/src/App.jsx',
-  '/src/App.css',
-  '/src/index.css',
-  '/src/assets/react.svg',
-  '/vite.svg',
-  '/manifest.json'
+  '/manifest.json',
+  '/assets/index-B1Iv3R_X.js',
+  '/assets/index-ydvwJqSB.css',
+  '/assets/react-CHdo91hT.svg'
 ];
 
 // Instalación del Service Worker
@@ -32,6 +29,8 @@ self.addEventListener('install', event => {
       })
       .catch(error => {
         console.error('Service Worker: Error cacheando APP SHELL:', error);
+        // No fallar la instalación por errores de cache
+        return self.skipWaiting();
       })
   );
 });
@@ -67,83 +66,16 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Estrategia: Cache First para APP SHELL, Network First para contenido dinámico
+  // Estrategia simple: Network First
   event.respondWith(
-    handleRequest(event.request)
+    fetch(event.request)
+      .catch(() => {
+        // Si falla la red, intentar desde cache
+        return caches.match(event.request);
+      })
   );
 });
 
-async function handleRequest(request) {
-  const url = new URL(request.url);
-  
-  // Verificar si es una ruta del APP SHELL
-  const isAppShellRoute = APP_SHELL_ROUTES.some(route => 
-    url.pathname === route || url.pathname.endsWith(route)
-  );
-
-  if (isAppShellRoute) {
-    // Estrategia Cache First para APP SHELL
-    return cacheFirst(request, APP_SHELL_CACHE);
-  } else {
-    // Estrategia Network First para contenido dinámico
-    return networkFirst(request, DYNAMIC_CACHE);
-  }
-}
-
-// Estrategia Cache First
-async function cacheFirst(request, cacheName) {
-  try {
-    const cachedResponse = await caches.match(request);
-    if (cachedResponse) {
-      console.log('Service Worker: Sirviendo desde cache:', request.url);
-      return cachedResponse;
-    }
-
-    const networkResponse = await fetch(request);
-    if (networkResponse.ok) {
-      const cache = await caches.open(cacheName);
-      cache.put(request, networkResponse.clone());
-    }
-    return networkResponse;
-  } catch (error) {
-    console.log('Service Worker: Error en cache first:', error);
-    return new Response('Contenido no disponible offline', { 
-      status: 503,
-      statusText: 'Service Unavailable'
-    });
-  }
-}
-
-// Estrategia Network First
-async function networkFirst(request, cacheName) {
-  try {
-    const networkResponse = await fetch(request);
-    if (networkResponse.ok) {
-      const cache = await caches.open(cacheName);
-      cache.put(request, networkResponse.clone());
-      console.log('Service Worker: Cacheando dinámicamente:', request.url);
-    }
-    return networkResponse;
-  } catch (error) {
-    console.log('Service Worker: Red no disponible, buscando en cache:', request.url);
-    const cachedResponse = await caches.match(request);
-    
-    if (cachedResponse) {
-      console.log('Service Worker: Sirviendo desde cache dinámico:', request.url);
-      return cachedResponse;
-    }
-
-    // Si no hay cache y no hay red, devolver página offline
-    if (request.destination === 'document') {
-      return caches.match('/index.html');
-    }
-
-    return new Response('Contenido no disponible offline', { 
-      status: 503,
-      statusText: 'Service Unavailable'
-    });
-  }
-}
 
 // Manejar sincronización en segundo plano
 self.addEventListener('sync', event => {

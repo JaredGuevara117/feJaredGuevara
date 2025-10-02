@@ -1,12 +1,40 @@
-# React + Vite
+# 🚀 PWA App
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Una aplicación web progresiva (PWA) con splash screen, iconos optimizados y funcionalidad offline.
 
-Currently, two official plugins are available:
+## ✨ Características
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- ✅ **Splash Screen** con color de fondo personalizado
+- ✅ **Iconos múltiples** para diferentes dispositivos
+- ✅ **Manifest.json** completo para instalación
+- ✅ **Service Worker** para funcionalidad offline
+- ✅ **Cache automático** de recursos
+- ✅ **Instalación PWA** en dispositivos móviles
 
-## Expanding the ESLint configuration
+## 🚀 Deploy en Vercel
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+1. Conecta tu repositorio a Vercel
+2. El proyecto se desplegará automáticamente
+3. La PWA estará disponible en HTTPS (requerido para instalación)
+
+## 📱 Instalación PWA
+
+Una vez desplegado en Vercel:
+1. Abre la URL en tu móvil
+2. Busca el botón "📱 Instalar PWA" 
+3. O usa "Agregar a pantalla de inicio" en el menú del navegador
+
+## 🛠️ Desarrollo Local
+
+```bash
+npm install
+npm run dev
+```
+
+## 📦 Build para Producción
+
+```bash
+npm run build
+```
+
+¡Tu PWA está lista para producción! 🎉
