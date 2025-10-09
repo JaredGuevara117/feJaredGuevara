@@ -185,6 +185,36 @@
   background: #45a049;
 }
 
+.sync-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.sync-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.syncing {
+  color: #FF9800;
+  font-weight: bold;
+}
+
+.offline-status {
+  color: #F44336;
+  font-weight: bold;
+}
+
+.online-status {
+  color: #4CAF50;
+  font-weight: bold;
+}
+
 .pwa-info {
   margin: 2rem 0;
   padding: 1.5rem;
@@ -324,3 +354,4 @@
     align-items: flex-start;
   }
 }
+

@@ -2,12 +2,15 @@ import { useState, useEffect, useRef } from 'react'
 import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'
+import apiService from './apiService.js'
+import './test-sync.js' // Script de testing
 
 function App() {
   console.log('🚀 App cargada - Lista de Tareas v1.2.0')
   const [isOnline, setIsOnline] = useState(navigator.onLine)
   const [cachedData, setCachedData] = useState([])
   const [newItem, setNewItem] = useState('')
+  const [apiStats, setApiStats] = useState({})
 
   // Detectar estado de conexión
   useEffect(() => {
@@ -29,7 +32,21 @@ function App() {
     if (savedData) {
       setCachedData(JSON.parse(savedData))
     }
+    
+    // Cargar estadísticas de API
+    loadApiStats()
   }, [])
+
+  // Cargar estadísticas de la API
+  const loadApiStats = async () => {
+    try {
+      const stats = await apiService.getStats()
+      setApiStats(stats)
+    } catch (error) {
+      console.error('Error cargando estadísticas:', error)
+    }
+  }
+
 
   // Guardar datos en localStorage
   const saveToCache = (data) => {
@@ -39,17 +56,40 @@ function App() {
   }
 
   // Agregar nuevo elemento
-  const addItem = () => {
+  const addItem = async () => {
     if (newItem.trim()) {
       const item = {
         id: Date.now(),
         text: newItem,
         timestamp: new Date().toLocaleString(),
-        synced: isOnline, // Si estás online, se marca como sincronizado
+        synced: false, // Siempre empezar como no sincronizado
         completed: false
       }
+      
+      // Intentar enviar al servidor usando la nueva API
+      try {
+        const response = await apiService.createTask({
+          title: newItem,
+          body: `Tarea: ${newItem}`,
+          userId: 1,
+          originalId: item.id.toString()
+        })
+        
+        if (response.success) {
+          console.log('✅ Tarea creada en el servidor:', response.data)
+          item.synced = true // Marcar como sincronizado
+          item.id = response.data._id // Usar ID del servidor
+        }
+      } catch (error) {
+        console.log('❌ Error enviando al servidor, se guardó en IndexedDB:', error)
+        // El apiService ya guardó en IndexedDB automáticamente
+      }
+      
       saveToCache(item)
       setNewItem('')
+      
+      // Actualizar estadísticas
+      await loadApiStats()
     }
   }
 
@@ -66,22 +106,49 @@ function App() {
     localStorage.setItem('offlineData', JSON.stringify(updatedData))
   }
 
-  // Simular sincronización cuando vuelve la conexión
+  // Sincronización manual (botón)
   const syncData = async () => {
     if (isOnline) {
-      // Simular envío de datos al servidor
-      console.log('Sincronizando datos:', cachedData)
-      
-      // Marcar todos los datos como sincronizados
-      const syncedData = cachedData.map(item => ({
-        ...item,
-        synced: true
-      }))
-      
-      setCachedData(syncedData)
-      localStorage.setItem('offlineData', JSON.stringify(syncedData))
-      
-      alert('Datos sincronizados con el servidor!')
+      try {
+        console.log('🔄 Iniciando sincronización manual...')
+        
+        // Usar el nuevo método de sincronización automática
+        await apiService.forceSync()
+        
+        // Recargar datos desde la API
+        await loadTasksFromAPI()
+        
+        // Actualizar estadísticas
+        await loadApiStats()
+        
+        console.log('✅ Sincronización manual completada')
+      } catch (error) {
+        console.error('Error en sincronización manual:', error)
+        alert('Error en sincronización. Algunos datos pueden no haberse sincronizado.')
+      }
+    }
+  }
+
+  // Cargar tareas desde la API
+  const loadTasksFromAPI = async () => {
+    try {
+      const response = await apiService.getTasks(1)
+      if (response.success) {
+        // Convertir formato de API a formato local
+        const apiTasks = response.data.map(task => ({
+          id: task._id,
+          text: task.title,
+          timestamp: new Date(task.timestamp).toLocaleString(),
+          synced: true,
+          completed: task.completed
+        }))
+        
+        setCachedData(apiTasks)
+        localStorage.setItem('offlineData', JSON.stringify(apiTasks))
+        console.log('📥 Tareas cargadas desde la API:', apiTasks.length)
+      }
+    } catch (error) {
+      console.error('Error cargando tareas desde API:', error)
     }
   }
 
@@ -120,6 +187,7 @@ function App() {
           Agrega tareas, márcalas como completadas y todo se guarda automáticamente.
           Funciona perfectamente sin conexión a internet.
         </p>
+        
       </div>
 
       {/* Funcionalidad offline demo */}
@@ -164,12 +232,29 @@ function App() {
           </div>
         )}
 
-        {isOnline && cachedData.some(item => !item.synced) && (
-          <button onClick={syncData} className="sync-button">
-            Sincronizar datos pendientes
-          </button>
-        )}
+        {/* Botón de sincronización */}
+        <div className="sync-controls">
+          {isOnline && (
+            <button onClick={syncData} className="sync-button">
+              🔄 Sincronizar datos pendientes
+            </button>
+          )}
+          
+          {/* Estado de sincronización */}
+          <div className="sync-status">
+            {apiService.getSyncStatus().syncInProgress && (
+              <span className="syncing">🔄 Sincronizando...</span>
+            )}
+            {!isOnline && (
+              <span className="offline-status">📴 Modo offline</span>
+            )}
+            {isOnline && !apiService.getSyncStatus().syncInProgress && (
+              <span className="online-status">🌐 En línea</span>
+            )}
+          </div>
+        </div>
       </div>
+
 
       <div className="pwa-info">
         <h3>🎨 Características PWA implementadas:</h3>

@@ -79,7 +79,8 @@ self.addEventListener('fetch', event => {
 
 // Manejar sincronización en segundo plano
 self.addEventListener('sync', event => {
-  console.log('Service Worker: Sincronización en segundo plano');
+  console.log('Service Worker: Sincronización en segundo plano - Tag:', event.tag);
+  
   if (event.tag === 'background-sync') {
     event.waitUntil(doBackgroundSync());
   }
@@ -87,7 +88,149 @@ self.addEventListener('sync', event => {
 
 async function doBackgroundSync() {
   console.log('Service Worker: Ejecutando sincronización en segundo plano');
-  // Aquí puedes implementar lógica para sincronizar datos cuando vuelva la conexión
+  
+  try {
+    // Obtener datos pendientes de IndexedDB
+    const pendingData = await getPendingDataFromIndexedDB();
+    console.log(`Service Worker: Encontrados ${pendingData.length} elementos pendientes`);
+    
+    // Procesar cada elemento pendiente
+    for (const item of pendingData) {
+      try {
+        await retryFailedRequest(item);
+        console.log(`Service Worker: Sincronizado exitosamente item ${item.id}`);
+      } catch (error) {
+        console.error(`Service Worker: Error sincronizando item ${item.id}:`, error);
+        await updateRetryCount(item.id, (item.retryCount || 0) + 1);
+      }
+    }
+    
+    console.log('Service Worker: Sincronización completada');
+  } catch (error) {
+    console.error('Service Worker: Error en sincronización:', error);
+  }
+}
+
+// Obtener datos pendientes de IndexedDB
+async function getPendingDataFromIndexedDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('PWA_Database', 1);
+    
+    request.onsuccess = () => {
+      const db = request.result;
+      const transaction = db.transaction(['pendingData'], 'readonly');
+      const store = transaction.objectStore('pendingData');
+      const getAllRequest = store.getAll();
+      
+      getAllRequest.onsuccess = () => {
+        const allData = getAllRequest.result;
+        const pendingData = allData.filter(item => 
+          item.status === 'pending' && (item.retryCount || 0) < 3
+        );
+        resolve(pendingData);
+      };
+      
+      getAllRequest.onerror = () => {
+        reject(getAllRequest.error);
+      };
+    };
+    
+    request.onerror = () => {
+      reject(request.error);
+    };
+  });
+}
+
+// Reintentar petición fallida
+async function retryFailedRequest(requestData) {
+  const { url, method, data } = requestData;
+  
+  const response = await fetch(url, {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data)
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  const result = await response.json();
+  
+  // Eliminar de IndexedDB después de éxito
+  await deleteFromIndexedDB(requestData.id);
+  
+  return result;
+}
+
+// Eliminar elemento de IndexedDB
+async function deleteFromIndexedDB(id) {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('PWA_Database', 1);
+    
+    request.onsuccess = () => {
+      const db = request.result;
+      const transaction = db.transaction(['pendingData'], 'readwrite');
+      const store = transaction.objectStore('pendingData');
+      const deleteRequest = store.delete(id);
+      
+      deleteRequest.onsuccess = () => {
+        console.log(`Service Worker: Eliminado de IndexedDB: ${id}`);
+        resolve();
+      };
+      
+      deleteRequest.onerror = () => {
+        reject(deleteRequest.error);
+      };
+    };
+    
+    request.onerror = () => {
+      reject(request.error);
+    };
+  });
+}
+
+// Actualizar contador de reintentos
+async function updateRetryCount(id, retryCount) {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('PWA_Database', 1);
+    
+    request.onsuccess = () => {
+      const db = request.result;
+      const transaction = db.transaction(['pendingData'], 'readwrite');
+      const store = transaction.objectStore('pendingData');
+      const getRequest = store.get(id);
+      
+      getRequest.onsuccess = () => {
+        const data = getRequest.result;
+        if (data) {
+          data.retryCount = retryCount;
+          data.lastRetry = new Date().toISOString();
+          
+          if (retryCount >= 3) {
+            data.status = 'failed';
+            data.failedAt = new Date().toISOString();
+          }
+          
+          const updateRequest = store.put(data);
+          updateRequest.onsuccess = () => resolve();
+          updateRequest.onerror = () => reject(updateRequest.error);
+        } else {
+          reject(new Error('Datos no encontrados'));
+        }
+      };
+      
+      getRequest.onerror = () => {
+        reject(getRequest.error);
+      };
+    };
+    
+    request.onerror = () => {
+      reject(request.error);
+    };
+  });
 }
 
 // Manejar notificaciones push
